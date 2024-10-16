@@ -9,7 +9,6 @@ entity door_cont is
         reset         : in  std_logic;
         fully_open    : in  std_logic;
         fully_closed  : in  std_logic;
-        timer_done    : in std_logic;
         door_rgb      : out std_logic_vector(2 downto 0);
         motor         : out std_logic_vector(1 downto 0)
     );
@@ -20,13 +19,17 @@ architecture BEHAV of door_cont is
     type state_type is (door_closed, door_opening, door_open, door_closing);
     signal current_state, next_state : state_type;
 
+    signal timer_done  : std_logic;
+    signal timer_start : std_logic;
+
 begin
 
-    timer: entity work.timer
-        port map (
-            clk    => clk,
-            reset  => reset,
-            done   => timer_done
+    timer : entity work.timer
+        port map(
+            clk   => clk,
+            reset => reset,
+            start => timer_start,
+            done  => timer_done
         );
 
     process(clk)
@@ -36,17 +39,15 @@ begin
         end if;
     end process;
 
-
     process(current_state, fully_closed, fully_open, motion_sensor, timer_done)
     begin
         case current_state is
             when door_closed =>
 
                 -- red led on
-                door_rgb(2) <= '1';
-                door_rgb(1 downto 0) <= "00";
-
-                motor <= "00";
+                door_rgb    <= "100";
+                motor       <= "00";
+                timer_start <= '0';
 
                 if motion_sensor = '1' then
                     next_state <= door_opening;
@@ -57,10 +58,9 @@ begin
             when door_opening =>
 
                 -- blue led on
-                door_rgb(0) <= '1';
-                door_rgb(2 downto 1) <= "00";
-
-                motor <= "01";
+                door_rgb    <= "001";
+                motor       <= "01";
+                timer_start <= '0';
 
                 if fully_open = '1' then
                     next_state <= door_open;
@@ -71,13 +71,10 @@ begin
             when door_open =>
 
                 -- green led on
-                door_rgb(0) <= '0';
-                door_rgb(1) <= '1';
-                door_rgb(2) <= '0';
+                door_rgb    <= "010";
+                motor       <= "00";
+                timer_start <= '1';
 
-                motor <= "00";
-
-                
                 if timer_done = '1' or motion_sensor = '0' then
                     next_state <= door_closing;
                 else
@@ -87,10 +84,10 @@ begin
             when door_closing =>
 
                 -- yellow led on
-                door_rgb(2 downto 1) <= "11";
-                door_rgb(0) <= '0';
+                door_rgb    <= "110";
+                motor       <= "10";
+                timer_start <= '0';
 
-                motor <= "10";
 
                 if fully_closed = '1' then
                     next_state <= door_closed;

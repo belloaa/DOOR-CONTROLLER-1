@@ -6,11 +6,12 @@ entity timer is
     port (
         clk     : in  std_logic;       
         reset   : in  std_logic;       
+        start   : in std_logic;
         done    : out std_logic        -- done signal that goes high after the set time is reached
     );
 end entity timer;
 
-architecture Behavioral of timer is
+architecture BEHAV of timer is
     constant CLK_FREQ : integer := 125_000_000;  -- zybo Z7 clock freq
     signal counter    : integer := 0;           -- internal counter
     signal cycles_required : integer := 0;      -- the number of clock cycles required for the desired time
@@ -26,15 +27,18 @@ begin
             done <= '0';
             cycles_required <= to_integer(time_s) * CLK_FREQ;  -- calculate required clock cycles based on signal
         elsif rising_edge(clk) then
-            if counter < cycles_required then
-                counter <= counter + 1;
-                done <= '0';
+            if start = '1' then
+                if counter < cycles_required then
+                    counter <= counter + 1;
+                    done <= '0';
+                else
+                    done <= '1';  -- signal that the timer is done
+                end if;
             else
-                done <= '1';  -- signal that the timer is done
+                counter <= 0;
+                done <= '0';
             end if;
         end if;
     end process;
 
-    
-
-end architecture Behavioral;
+end architecture BEHAV;
